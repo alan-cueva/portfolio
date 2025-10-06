@@ -1,0 +1,162 @@
+// Use DBML to define your database structure
+// Docs: https://dbml.dbdiagram.io/docs
+
+TABLE WindFarm {
+    ID INT [PRIMARY KEY]
+    Name VARCHAR
+    County VARCHAR
+    Latitude DECIMAL 
+    Longitude DECIMAL
+    TotalCapacityMW DECIMAL
+}
+
+TABLE Turbine {
+    ID INT [PRIMARY KEY]
+    FarmID INT
+    Model VARCHAR
+    CapacityMW DECIMAL
+    InstallationDate DATE
+    Latitude DECIMAL 
+    Longitude DECIMAL
+}
+Ref: Turbine.FarmID > WindFarm.ID
+
+TABLE MaintenanceSchedule {
+    ID INT [PRIMARY KEY]
+    TurbineID INT
+    TechnicianID INT
+    ScheduledDate DATE
+    AssignationDate DATE
+    EndDate DATE
+    Comment VARCHAR
+    MaintenanceStatusID INT
+}
+Ref: Turbine.ID < MaintenanceSchedule.TurbineID
+Ref: MaintenanceSchedule.MaintenanceStatusID > MaintenanceStatus.ID
+
+// New, Assigned, Completed, Overdue, Cancelled, Failed
+TABLE MaintenanceStatus {
+    ID INT [primary key]
+    Label VARCHAR
+}
+
+TABLE Incident {
+    ID INT [PRIMARY KEY]
+    TurbineID INT
+    Reported DATETIME
+    Resolution DATETIME
+    // 'Mechanical','Electrical','Safety','Environmental','Weather'
+    Type VARCHAR
+    Description TEXT
+    IncidentSeverityID INT
+    IncidentStatusID INT
+}
+Ref: Incident.TurbineID > Turbine.ID
+Ref: Incident.IncidentStatusID > IncidentStatus.ID
+Ref: Incident.IncidentSeverityID > IncidentSeverity.ID
+
+// Reported, In Progress, Resolved, Cancelled
+TABLE IncidentStatus {
+    ID INT [primary key]
+    Label VARCHAR
+}
+
+// Minor, Major, Critical
+TABLE IncidentSeverity {
+    ID INT [primary key]
+    Label VARCHAR
+}
+/*
+TABLE TurbineShutdown {
+    ID INT [PRIMARY KEY]
+    TurbineID INT
+    Timestamp DATETIME
+    Reason VARCHAR
+    IncidentID INT
+    MaintenanceScheduleID INT
+
+}
+Ref: TurbineShutdown.TurbineID > Turbine.ID
+Ref: TurbineShutdown.IncidentID > Incident.ID
+Ref: TurbineShutdown.MaintenanceScheduleID > MaintenanceSchedule.ID
+*/
+TABLE Technician {
+    ID INT [PRIMARY KEY]
+    Name VARCHAR
+    CertificationLevel INT
+    Contact VARCHAR
+}
+
+Table TechnicianMaintenanceJunction {
+    ID INT [PRIMARY KEY]
+    Created DATETIME
+    Finished DATETIME
+    TechnicianID INT
+    MaintenanceScheduleID INT
+}
+Ref: TechnicianMaintenanceJunction.TechnicianID <> Technician.ID
+Ref: TechnicianMaintenanceJunction.MaintenanceScheduleID <> MaintenanceSchedule.ID
+
+Table TechnicianIncidentJunction {
+    ID INT [PRIMARY KEY]
+    Created DATETIME
+    Finished DATETIME
+    TechnicianID INT
+    IncidentID INT
+}
+Ref: TechnicianIncidentJunction.TechnicianID <> Technician.ID
+Ref: TechnicianIncidentJunction.IncidentID <> Incident.ID
+
+TABLE SCADAData {
+    ID BIGINT [PRIMARY KEY]
+    TurbineID INT
+    Timestamp DATETIME
+    WindSpeed DECIMAL
+    StdDevWindSpeed DECIMAL // Wind speed standard deviation (m/s)
+    WindDirAbs DECIMAL // absolute wind direction (deg)
+    WindDirRel DECIMAL // Relative direction of nacelle with respect to WindDirAbs (deg)
+    PowerOutputkW DECIMAL
+    MaxPowerkW DECIMAL
+    MinPowerkW DECIMAL
+    StdDevPowerkW DECIMAL
+    AvgRPower DECIMAL // Average reactive power output (kVAR)
+    GeneratorRPM DECIMAL // Electrical generator revs per minute (RPM)
+    RotorRPM DECIMAL // Wind turbine rotor revs per minute (RPM)
+    EnvirTemp DECIMAL // Environmental temperature outside of nacelle (oC)
+    NacelTemp DECIMAL // Temperature inside nacelle space (oC)
+    GearOilTemp DECIMAL // Gearbox oil temperature (oC)
+    GearBearTemp DECIMAL // Gearbox bearing temperature (oC)
+    GeneratorTemp DECIMAL // Generator temperature (not active-999)
+    GeneratorPh1Temp DECIMAL // Generator phase 1 winding temperature (oC)
+    GeneratorPh2Temp DECIMAL // Generator phase 3 winding temperature (oC)
+    GeneratorPh3Temp DECIMAL // Generator phase 3 winding temperature (oC)
+    GeneratorBearTemp DECIMAL // Generator bearing temperature (oC)
+}
+Ref: SCADAData.TurbineID > Turbine.ID
+
+
+
+
+==============================================
+
+
+Constraints: Include 2-3 relevant business rules and data constraints
+
+[Avoid duplicate entries]
+CONSTRAINT TechnicianMaintenanceJunction UNIQUE TechnicianID, MaintenanceScheduleID)
+CONSTRAINT TechnicianIncidentJunction UNIQUE (TechnicianID, IncidentID)
+CONSTRAINT SCADAData UNIQUE (TurbineID, Timestamp)
+
+CONSTRAINT TurbineShutdown
+	IncidentID INT
+    MaintenanceScheduleID INT
+    Both cannot being NOT NULL or NULL
+
+Unique constraints: Consider adding:
+	Turbine(FarmID, Latitude, Longitude) — ensures no duplicate position per farm.
+	MaintenanceStatus.Label / IncidentStatus.Label — make them unique for integrity.
+
+Briefly explain how your ERD could support Business Intelligence applications,
+such as predictive maintenance, performance monitoring, or operational
+optimisation
+
