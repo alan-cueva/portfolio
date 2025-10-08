@@ -2,114 +2,118 @@
 // Docs: https://dbml.dbdiagram.io/docs
 
 TABLE WindFarm {
-    ID INT [PRIMARY KEY]
-    Name VARCHAR
-    County VARCHAR
-    Latitude DECIMAL 
-    Longitude DECIMAL
-    TotalCapacityMW DECIMAL
+    ID INT [PRIMARY KEY, not null]
+    Name VARCHAR [not null]
+    CountryCode VARCHAR [not null]
+    Latitude DECIMAL [not null]
+    Longitude DECIMAL [not null]
+    TotalCapacityMW DECIMAL [not null]
 }
 
 TABLE Turbine {
-    ID INT [PRIMARY KEY]
-    FarmID INT
-    Model VARCHAR
-    CapacityMW DECIMAL
-    InstallationDate DATE
-    Latitude DECIMAL 
-    Longitude DECIMAL
+    ID INT [PRIMARY KEY, not null]
+    FarmID INT [not null]
+    Model VARCHAR [not null]
+    CapacityMW DECIMAL [not null]
+    InstallationDate DATE [not null]
+    Latitude DECIMAL [not null]
+    Longitude DECIMAL [not null]
 }
 Ref: Turbine.FarmID > WindFarm.ID
 
 TABLE MaintenanceSchedule {
-    ID INT [PRIMARY KEY]
-    TurbineID INT
-    TechnicianID INT
-    ScheduledDate DATE
-    AssignationDate DATE
-    EndDate DATE
-    Comment VARCHAR
-    MaintenanceStatusID INT
+    ID INT [PRIMARY KEY, not null]
+    TurbineID INT [not null]
+    ScheduledDate DATE [not null]
+    Notes VARCHAR [null]
+    MaintenanceStatusID INT [not null]
+    TurbineShutdownID INT [not null]
 }
-Ref: Turbine.ID < MaintenanceSchedule.TurbineID
+Ref: MaintenanceSchedule.TurbineID > Turbine.ID
 Ref: MaintenanceSchedule.MaintenanceStatusID > MaintenanceStatus.ID
+Ref: MaintenanceSchedule.TurbineShutdownID - TurbineShutdown.ID
 
 // New, Assigned, Completed, Overdue, Cancelled, Failed
 TABLE MaintenanceStatus {
     ID INT [primary key]
-    Label VARCHAR
+    Name VARCHAR [not null]
 }
 
 TABLE Incident {
-    ID INT [PRIMARY KEY]
-    TurbineID INT
-    Reported DATETIME
-    Resolution DATETIME
-    // 'Mechanical','Electrical','Safety','Environmental','Weather'
-    Type VARCHAR
-    Description TEXT
-    IncidentSeverityID INT
-    IncidentStatusID INT
+    ID INT [PRIMARY KEY, not null]
+    TurbineID INT [not null]
+    Reported DATETIME [not null]
+    Resolution DATETIME [null]
+    Description TEXT [null]
+    IncidentSeverityID INT [not null]
+    IncidentStatusID INT [not null]
+    TurbineShutdownID INT [not null]
 }
 Ref: Incident.TurbineID > Turbine.ID
 Ref: Incident.IncidentStatusID > IncidentStatus.ID
 Ref: Incident.IncidentSeverityID > IncidentSeverity.ID
+Ref: Incident.TurbineShutdownID - TurbineShutdown.ID
 
 // Reported, In Progress, Resolved, Cancelled
 TABLE IncidentStatus {
-    ID INT [primary key]
-    Label VARCHAR
+    ID INT [primary key, not null]
+    Name VARCHAR [not null]
 }
 
 // Minor, Major, Critical
 TABLE IncidentSeverity {
-    ID INT [primary key]
-    Label VARCHAR
+    ID INT [primary key, not null]
+    Name VARCHAR [not null]
 }
-/*
-TABLE TurbineShutdown {
-    ID INT [PRIMARY KEY]
-    TurbineID INT
-    Timestamp DATETIME
-    Reason VARCHAR
-    IncidentID INT
-    MaintenanceScheduleID INT
 
+TABLE TurbineShutdown {
+    ID INT [PRIMARY KEY, not null]
+    TurbineID INT [not null]
+    TurnOff DATETIME [null]
+    TurnOn DATETIME [null]
+    Notes VARCHAR [null]
+    TurbineShutdownTypeID INT [not null]
 }
 Ref: TurbineShutdown.TurbineID > Turbine.ID
-Ref: TurbineShutdown.IncidentID > Incident.ID
-Ref: TurbineShutdown.MaintenanceScheduleID > MaintenanceSchedule.ID
-*/
+Ref: TurbineShutdown.TurbineShutdownTypeID > TurbineShutdownType.ID
+
+// Maintenance, Incident, Error, Weather, etc
+TABLE TurbineShutdownType {
+    ID INT [primary key, not null]
+    Name VARCHAR [not null]
+}
+
 TABLE Technician {
-    ID INT [PRIMARY KEY]
-    Name VARCHAR
-    CertificationLevel INT
-    Contact VARCHAR
+    ID INT [PRIMARY KEY, not null]
+    Name VARCHAR [not null]
+    CertificationLevel INT [not null]
+    Email VARCHAR [null]
+    Phone VARCHAR [not null]
 }
 
-Table TechnicianMaintenanceJunction {
-    ID INT [PRIMARY KEY]
-    Created DATETIME
-    Finished DATETIME
-    TechnicianID INT
-    MaintenanceScheduleID INT
+Table TechnicianMaintenance {
+    ID INT [PRIMARY KEY, not null]
+    Assigned DATETIME [not null]
+    Finished DATETIME [null]
+    TechnicianID INT [not null]
+    MaintenanceScheduleID INT [not null]
 }
-Ref: TechnicianMaintenanceJunction.TechnicianID <> Technician.ID
-Ref: TechnicianMaintenanceJunction.MaintenanceScheduleID <> MaintenanceSchedule.ID
+Ref: TechnicianMaintenance.TechnicianID > Technician.ID
+Ref: TechnicianMaintenance.MaintenanceScheduleID > MaintenanceSchedule.ID
 
-Table TechnicianIncidentJunction {
-    ID INT [PRIMARY KEY]
-    Created DATETIME
-    Finished DATETIME
-    TechnicianID INT
-    IncidentID INT
+Table TechnicianIncident {
+    ID INT [PRIMARY KEY, not null]
+    Assigned DATETIME [not null]
+    Finished DATETIME [null]
+    TechnicianID INT [not null]
+    IncidentID INT [not null]
 }
-Ref: TechnicianIncidentJunction.TechnicianID <> Technician.ID
-Ref: TechnicianIncidentJunction.IncidentID <> Incident.ID
+Ref: TechnicianIncident.TechnicianID > Technician.ID
+Ref: TechnicianIncident.IncidentID > Incident.ID
 
 TABLE SCADAData {
-    ID BIGINT [PRIMARY KEY]
-    TurbineID INT
+    ID BIGINT [PRIMARY KEY, not null]
+    TurbineID INT [not null]
     Timestamp DATETIME
     WindSpeed DECIMAL
     StdDevWindSpeed DECIMAL // Wind speed standard deviation (m/s)
@@ -134,11 +138,7 @@ TABLE SCADAData {
 }
 Ref: SCADAData.TurbineID > Turbine.ID
 
-
-
-
-==============================================
-
+====================================================================================
 
 Constraints: Include 2-3 relevant business rules and data constraints
 
@@ -155,8 +155,4 @@ CONSTRAINT TurbineShutdown
 Unique constraints: Consider adding:
 	Turbine(FarmID, Latitude, Longitude) — ensures no duplicate position per farm.
 	MaintenanceStatus.Label / IncidentStatus.Label — make them unique for integrity.
-
-Briefly explain how your ERD could support Business Intelligence applications,
-such as predictive maintenance, performance monitoring, or operational
-optimisation
 
